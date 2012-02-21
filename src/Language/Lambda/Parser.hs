@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts, DeriveDataTypeable #-}
-{-- | Parser for the lambda AST built of parsec. No Support for AntiExpr yet. Probably not efficent -}
+{-- | Parser for the lambda AST built of parsec. Converts to an intermediate format for antiexpressions -}
 module Language.Lambda.Parser where
 import Text.Parsec
 import Text.Parsec.Language
@@ -11,64 +11,88 @@ import Data.Data
 
 type M = Identity
 
-data MetaExpr = MVar Sym
-              | MApp MetaExpr MetaExpr
-              | MLam Sym MetaExpr
+data MetaExpr s = MVar (MetaSym s)
+              | MApp (MetaExpr s) (MetaExpr s)
+              | MLam (MetaSym s) (MetaExpr s)
               | AntiExpr String
+              | AntiVar  String
+              deriving(Show, Eq, Data, Typeable)
+              
+data MetaSym s = S s
+               | AntiSym String
               deriving(Show, Eq, Data, Typeable)
 
-type Output = MetaExpr
+type Output s = MetaExpr s
 
-top_expr :: ParsecT String u M Output
-top_expr = do 
+type SymParser u s = ParsecT String u M s
+
+top_expr :: SymParser u s -> ParsecT String u M (Output s)
+top_expr sp = do 
     spaces
-    e <- parse_expr
+    e <- parse_expr sp
     spaces
     eof
     return e
     
-parse_expr :: ParsecT String u M Output
-parse_expr =  try parse_aexpr 
-          <|> try parse_lambda
+parse_expr :: SymParser u s -> ParsecT String u M (Output s)
+parse_expr sp = try (parse_aexpr sp)
+          <|> try (parse_lambda sp)
           <|> try parse_anti_expr
  
-parse_aexpr :: ParsecT String u M Output
-parse_aexpr =  try parse_app 
-           <|> try parse_atom
+parse_aexpr :: SymParser u s -> ParsecT String u M (Output s)
+parse_aexpr sp =  try (parse_app sp)
+              <|> try (parse_atom sp)
            
-parse_anti_expr :: ParsecT String u M Output
+parse_anti_expr :: ParsecT String u M (Output s)
 parse_anti_expr = do
     _ <- string "$"
     i <- (identifier haskell)
     return $ AntiExpr i
 
-parse_lambda :: ParsecT String u M Output
-parse_lambda = do
+parse_lambda :: SymParser u s -> ParsecT String u M (Output s)
+parse_lambda sp = do
     _ <- char '\\'
     spaces
-    sym  <- parse_sym <?> "lambda argument"
+    sym  <- (p_sym sp) <?> "lambda argument"
     _ <- char '.'
     spaces
-    expr <- parse_expr <?> "lambda expression"
+    expr <- (parse_expr sp) <?> "lambda expression"
     return $ MLam sym expr
 
-parse_app :: ParsecT String u M Output
-parse_app = do
-    expr_0 <- parse_atom <?> "first apply argument"
+parse_app :: SymParser u s -> ParsecT String u M (Output s)
+parse_app sp = do
+    expr_0 <- (parse_atom sp) <?> "first apply argument"
     spaces
-    as <-  sepBy1 parse_atom spaces <?> "other apply arguments"
+    as <-  sepBy1 (parse_atom sp) spaces <?> "other apply arguments"
     return $ foldl' MApp expr_0 as
 
-parse_atom :: ParsecT String u M Output
-parse_atom =  try  (parens'  parse_expr)
-          <|> try parse_var 
+parse_atom :: SymParser u s -> ParsecT String u M (Output s)
+parse_atom sp =  try  (parens'  (parse_expr sp))
+          <|> try (parse_var sp)
           <|> try parse_anti_expr
           
-parse_var :: ParsecT String u M Output
-parse_var = do
+parse_var sp = try (parse_var' sp) <|> parse_anti_var 
+          
+parse_var' :: SymParser u s -> ParsecT String u M (Output s)
+parse_var' sp = do
     spaces
-    sym <- parse_sym <?> "Var symbol"
-    return $ MVar sym 
+    sym <- (p_sym sp) <?> "Var symbol"
+    return $ MVar sym  
+ 
+parse_anti_var = do 
+    spaces 
+    _ <- string "*"
+    i <- (identifier haskell)
+    return $ AntiVar i
+    
+p_sym :: SymParser u s -> ParsecT String u M (MetaSym s)
+p_sym sp = try (S `fmap` sp) <|> try parse_anti_sym
+
+parse_anti_sym :: ParsecT String u M (MetaSym s)
+parse_anti_sym = do
+    _ <- string "^"
+    i <- (identifier haskell)
+    return $ AntiSym i
     
 parse_sym :: ParsecT String u M Sym
 parse_sym = many1 (alphaNum <|> char '_') <?> "symbol"
@@ -80,16 +104,16 @@ parens' p = do
     _ <- char ')'
     return e
 
-meta_to_expr :: MetaExpr -> Expr
-meta_to_expr (MVar x)     = Var x
+meta_to_expr :: MetaExpr Sym -> Expr
+meta_to_expr (MVar (S x))     = Var x
 meta_to_expr (MApp x y)   = App (meta_to_expr x) (meta_to_expr y)
-meta_to_expr (MLam x y)   = Lam x (meta_to_expr y)
-meta_to_expr (AntiExpr _) = error "meta_to_expr should not be used if the MetaExpr tree has AntiExpr"
+meta_to_expr (MLam (S x) y)   = Lam x (meta_to_expr y)
+meta_to_expr _ = error "meta_to_expr should not be used if the MetaExpr tree has AntiExpr"
 
-to_meta :: Expr -> MetaExpr
-to_meta (Var x)   = MVar x
+to_meta :: Expr -> MetaExpr Sym
+to_meta (Var x)   = MVar (S x)
 to_meta (App x y) = MApp (to_meta x) (to_meta y)
-to_meta (Lam x y) = MLam x (to_meta y)
+to_meta (Lam x y) = MLam (S x) (to_meta y)
 
 
 

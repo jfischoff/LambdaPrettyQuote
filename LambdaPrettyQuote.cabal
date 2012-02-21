@@ -7,7 +7,7 @@ Name:                LambdaPrettyQuote
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
 -- standards guiding when and how versions should be incremented.
-Version:             0.0.0.1
+Version:             0.0.0.5
 
 -- A short (one-line) description of the package.
 Synopsis:            Parser, pretty printer, quasiquoter, and Arbitrary helpers for the untyped lambda calculus.
@@ -15,7 +15,8 @@ Synopsis:            Parser, pretty printer, quasiquoter, and Arbitrary helpers 
 homepage: http://github.com/jfischoff/LambdaPrettyQuote
 
 -- A longer description of the package.
--- Description:         
+Description:  
+       CHANGES -- 0.0.0.2 added \"anti\" expressions for the quasiquoter to capture variables from the environment. Also added a pattern quasiquoter. 
 
 -- The license under which the package is released.
 License:             BSD3

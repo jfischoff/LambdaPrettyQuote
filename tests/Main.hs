@@ -40,21 +40,27 @@ tests = [
         testGroup "AntiQuotes Expr" [
             testCase "test_antivar_0" test_antivar_0,
             testCase "test_antivar_1" test_antivar_1,
-            testCase "test_antivar_2" test_antivar_2
+            testCase "test_antivar_2" test_antivar_2,
+            testCase "test_antivar_3" test_antivar_3,
+            testCase "test_antivar_4" test_antivar_4,
+            testCase "test_antivar_4" test_antivar_5
         ],
         testGroup "AntiQuotes Pat" [
             testCase "test_antipat_0" test_antipat_0,
             testCase "test_antipat_1" test_antipat_1,
-            testCase "test_antipat_2" test_antipat_2
+            testCase "test_antipat_2" test_antipat_2,
+            testCase "test_antipat_3" test_antipat_3,
+            testCase "test_antipat_4" test_antipat_4,
+            testCase "test_antipat_5" test_antipat_5
         ]
     ]
     
 test_parse_var_0 = (meta_to_expr actual) @?= expected where
-    (Right actual) = runParser parse_var () "" "x"
+    (Right actual) = runParser (parse_var parse_sym) () "" "x"
     expected = Var "x"
     
 test_parse_lam_0 = actual @?= expected where
-    result = runParser parse_lambda () "" "\\x.x"
+    result = runParser (parse_lambda parse_sym) () "" "\\x.x"
     actual = case result of
         Right x -> meta_to_expr x
         Left x -> error $ show x
@@ -62,21 +68,21 @@ test_parse_lam_0 = actual @?= expected where
 
 
 test_parse_lam_1 = actual @?= expected where
-    result = runParser parse_expr () "" "(\\x.x)"
+    result = runParser (parse_expr parse_sym) () "" "(\\x.x)"
     actual = case result of
         Right x -> meta_to_expr x
         Left x -> error $ show x
     expected = Lam "x" $ Var "x" 
    
 test_parse_app_0 = actual @?= expected where
-    result = runParser parse_app () "" "x y"
+    result = runParser (parse_app parse_sym) () "" "x y"
     actual = case result of
         Right x -> meta_to_expr x
         Left x -> error $ show x
     expected = App (Var "x") $ Var "y"
 
 test_parse_app_1 = actual @?= expected where
-    result = runParser parse_expr () "" "(x y)"
+    result = runParser (parse_expr parse_sym) () "" "(x y)"
     actual = case result of
         Right x -> meta_to_expr x
         Left x -> error $ show x
@@ -88,17 +94,17 @@ test_parse_exp_0 = actual @?= expected where
 
 
 test_parse_exp_1 = actual @?= expected where
-    result = runParser parse_expr () "" "((\\x.x) y)"
+    result = runParser (parse_expr parse_sym) () "" "((\\x.x) y)"
     actual = case result of
         Right x -> meta_to_expr x
         Left x -> error $ show x
     expected = App (Lam "x" $ Var "x") $ Var "y"
     
-run_p = runParser parse_expr () ""
+run_p = runParser (parse_expr parse_sym) () ""
     
 prop_parse_is_inverse_of_ppr :: Expr -> Bool
 prop_parse_is_inverse_of_ppr x = result where
-    parsed = runParser parse_expr () "" $ ppr x
+    parsed = runParser (parse_expr parse_sym) () "" $ ppr x
     result = case parsed of
         Right e -> meta_to_expr e == x
         Left _ -> trace (show x) False 
@@ -118,6 +124,21 @@ test_antivar_2 = actual @?= expected where
     actual = [lam| (x $y) |]
     y = App (Lam "yo" $ Var "y") (Var "h")
     expected = App (Var "x") $ y
+    
+test_antivar_3 = actual @?= expected where
+    actual = [lam| (\^x.y) |]
+    x = "hey"
+    expected = [lam| (\hey.y) |]
+    
+test_antivar_4 = actual @?= expected where
+    actual = [lam| (^x y) |]
+    x = "hey"
+    expected = [lam| (hey y) |]
+
+test_antivar_5 = actual @?= expected where
+    actual = [lam| (x *y) |]
+    y = "hey"
+    expected = [lam| (x hey) |]
 
 test_antipat_0 = f input @?= expected where
     f [lam| \x.$y |] = y
@@ -133,5 +154,20 @@ test_antipat_2 = f input @?= expected where
     f [lam| (x $y) |] = y
     input    = [lam| (x $expected) |]
     expected = [lam| \x.(\y. x y) |]
+    
+test_antipat_3 = f input @?= expected where
+    f [lam| \^x. y |] = x
+    input    = [lam| \^expected.y |]
+    expected = "hey"
+
+test_antipat_4 = f input @?= expected where
+    f [lam| \x. *y |] = y
+    input    = [lam| \x. *expected |]
+    expected = "hey"
+
+test_antipat_5 = f input @?= expected where
+    f [lam| (x ^y) |] = y
+    input    = [lam| (x ^expected) |]
+    expected = "yo"   
 
 
