@@ -36,7 +36,17 @@ tests = [
             testCase "test_parse_exp_0" test_parse_exp_0,
             testCase "test_parse_exp_1" test_parse_exp_1,
             testProperty "prop_parse_is_inverse_of_ppr" $ mapSize (const 10) prop_parse_is_inverse_of_ppr
-        ]    
+        ],
+        testGroup "AntiQuotes Expr" [
+            testCase "test_antivar_0" test_antivar_0,
+            testCase "test_antivar_1" test_antivar_1,
+            testCase "test_antivar_2" test_antivar_2
+        ],
+        testGroup "AntiQuotes Pat" [
+            testCase "test_antipat_0" test_antipat_0,
+            testCase "test_antipat_1" test_antipat_1,
+            testCase "test_antipat_2" test_antipat_2
+        ]
     ]
     
 test_parse_var_0 = (meta_to_expr actual) @?= expected where
@@ -92,13 +102,36 @@ prop_parse_is_inverse_of_ppr x = result where
     result = case parsed of
         Right e -> meta_to_expr e == x
         Left _ -> trace (show x) False 
+        
+ 
+test_antivar_0 = actual @?= expected where
+    actual = [lam| (\x.$y) |]
+    y = Var "yo"
+    expected = Lam "x" $ y
 
+test_antivar_1 = actual @?= expected where
+    actual = [lam| (x $y) |]
+    y = Lam "yo" $ Var "y"
+    expected = App (Var "x") $ y
 
+test_antivar_2 = actual @?= expected where
+    actual = [lam| (x $y) |]
+    y = App (Lam "yo" $ Var "y") (Var "h")
+    expected = App (Var "x") $ y
 
+test_antipat_0 = f input @?= expected where
+    f [lam| \x.$y |] = y
+    input    = [lam| \x.$expected |]
+    expected = [lam| (x y) |]
+    
+test_antipat_1 = f input @?= expected where
+    f [lam| $y |] = y
+    input    = [lam| $expected |]
+    expected = [lam| x |]
 
-
-
-
-
+test_antipat_2 = f input @?= expected where
+    f [lam| (x $y) |] = y
+    input    = [lam| (x $expected) |]
+    expected = [lam| \x.(\y. x y) |]
 
 

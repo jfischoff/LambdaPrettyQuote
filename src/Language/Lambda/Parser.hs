@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, DeriveDataTypeable #-}
 {-- | Parser for the lambda AST built of parsec. No Support for AntiExpr yet. Probably not efficent -}
 module Language.Lambda.Parser where
 import Text.Parsec
@@ -8,18 +8,15 @@ import Language.Lambda.AST
 import Data.Functor.Identity
 import Data.List
 import Control.Applicative ((<$>))
+import Data.Data
 
 type M = Identity
 
-data MetaExpr = MVar MetaSym
-              | AntiVar String
+data MetaExpr = MVar Sym
               | MApp MetaExpr MetaExpr
-              | AntiApp String String
-              | MLam MetaSym MetaExpr
-              | AntiLam String
-
-data MetaSym = AntiSym String
-             | S Sym
+              | MLam Sym MetaExpr
+              | AntiExpr String
+              deriving(Show, Eq, Data, Typeable)
 
 type Output = MetaExpr
 
@@ -34,77 +31,48 @@ top_expr = do
 parse_expr :: ParsecT String u M Output
 parse_expr =  try parse_aexpr 
           <|> try parse_lambda
+          <|> try parse_anti_expr
  
 parse_aexpr :: ParsecT String u M Output
 parse_aexpr =  try parse_app 
            <|> try parse_atom
            
-parse_lambda =  try parse_anti_lambda 
-            <|> try parse_lambda'
-
-parse_anti_lambda :: ParsecT String u M Output
-parse_anti_lambda = do
-    _ <- string "$lam:"
+parse_anti_expr :: ParsecT String u M Output
+parse_anti_expr = do
+    _ <- string "$"
     i <- (identifier haskell)
-    return $ AntiLam i
+    return $ AntiExpr i
 
-parse_lambda' :: ParsecT String u M Output
-parse_lambda' = do
+parse_lambda :: ParsecT String u M Output
+parse_lambda = do
     _ <- char '\\'
+    spaces
     sym  <- parse_sym <?> "lambda argument"
     _ <- char '.'
+    spaces
     expr <- parse_expr <?> "lambda expression"
     return $ MLam sym expr
 
-parse_app = parse_app' 
-      -- <|> try parse_anti_app
-
-parse_app' :: ParsecT String u M Output
-parse_app' = do
+parse_app :: ParsecT String u M Output
+parse_app = do
     expr_0 <- parse_atom <?> "first apply argument"
     spaces
     as <-  sepBy1 parse_atom spaces <?> "other apply arguments"
     return $ foldl' MApp expr_0 as
 
-{-    
-parse_anti_app :: ParsecT String u M Output
-parse_anti_app = do
-    _ <- string "$app:"
-    i <- (identifier haskell)
-    return $ AntiApp i
--}
-
 parse_atom :: ParsecT String u M Output
 parse_atom =  try  (parens'  parse_expr)
           <|> try parse_var 
+          <|> try parse_anti_expr
           
-parse_var =  try parse_var'
-         <|> try parse_anti_var
-
-parse_var' :: ParsecT String u M Output
-parse_var' = do
+parse_var :: ParsecT String u M Output
+parse_var = do
     spaces
     sym <- parse_sym <?> "Var symbol"
     return $ MVar sym 
     
-parse_anti_var :: ParsecT String u M Output
-parse_anti_var = do
-    _ <- string "$var:"
-    i <- (identifier haskell)
-    return $ AntiVar i
-
-parse_sym =  try parse_anti_sym
-         <|> (S <$> parse_sym')
-         
-    
-parse_anti_sym :: ParsecT String u M MetaSym
-parse_anti_sym = do
-    _ <- string "$sym:"
-    i <- (identifier haskell)
-    return $ AntiSym i
-
-parse_sym' :: ParsecT String u M Sym
-parse_sym' = many1 (alphaNum <|> char '_') <?> "symbol"
+parse_sym :: ParsecT String u M Sym
+parse_sym = many1 (alphaNum <|> char '_') <?> "symbol"
 
 parens' :: Stream s m Char => ParsecT s u m b -> ParsecT s u m b
 parens' p = do 
@@ -114,12 +82,15 @@ parens' p = do
     return e
 
 meta_to_expr :: MetaExpr -> Expr
-meta_to_expr (MVar x)   = Var (meta_sym_to_sym x)
+meta_to_expr (MVar x)   = Var x
 meta_to_expr (MApp x y) = App (meta_to_expr x) (meta_to_expr y)
-meta_to_expr (MLam x y) = Lam (meta_sym_to_sym x) (meta_to_expr y)
+meta_to_expr (MLam x y) = Lam x (meta_to_expr y)
 
-meta_sym_to_sym :: MetaSym -> Sym
-meta_sym_to_sym (S x) = x
+to_meta (Var x) = MVar x
+to_meta (App x y) = MApp (to_meta x) (to_meta y)
+to_meta (Lam x y) = MLam x (to_meta y)
+
+
 
 
 
