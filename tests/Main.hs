@@ -39,14 +39,14 @@ tests = [
         ]    
     ]
     
-test_parse_var_0 = actual @?= expected where
+test_parse_var_0 = (meta_to_expr actual) @?= expected where
     (Right actual) = runParser parse_var () "" "x"
     expected = Var "x"
     
 test_parse_lam_0 = actual @?= expected where
     result = runParser parse_lambda () "" "\\x.x"
     actual = case result of
-        Right x -> x
+        Right x -> meta_to_expr x
         Left x -> error $ show x
     expected = Lam "x" $ Var "x"
 
@@ -54,21 +54,21 @@ test_parse_lam_0 = actual @?= expected where
 test_parse_lam_1 = actual @?= expected where
     result = runParser parse_expr () "" "(\\x.x)"
     actual = case result of
-        Right x -> x
+        Right x -> meta_to_expr x
         Left x -> error $ show x
     expected = Lam "x" $ Var "x" 
    
 test_parse_app_0 = actual @?= expected where
     result = runParser parse_app () "" "x y"
     actual = case result of
-        Right x -> x
+        Right x -> meta_to_expr x
         Left x -> error $ show x
     expected = App (Var "x") $ Var "y"
 
 test_parse_app_1 = actual @?= expected where
     result = runParser parse_expr () "" "(x y)"
     actual = case result of
-        Right x -> x
+        Right x -> meta_to_expr x
         Left x -> error $ show x
     expected = App (Var "x") $ Var "y"
    
@@ -80,7 +80,7 @@ test_parse_exp_0 = actual @?= expected where
 test_parse_exp_1 = actual @?= expected where
     result = runParser parse_expr () "" "((\\x.x) y)"
     actual = case result of
-        Right x -> x
+        Right x -> meta_to_expr x
         Left x -> error $ show x
     expected = App (Lam "x" $ Var "x") $ Var "y"
     
@@ -90,7 +90,7 @@ prop_parse_is_inverse_of_ppr :: Expr -> Bool
 prop_parse_is_inverse_of_ppr x = result where
     parsed = runParser parse_expr () "" $ ppr x
     result = case parsed of
-        Right e -> e == x
+        Right e -> meta_to_expr e == x
         Left _ -> trace (show x) False 
 
 
