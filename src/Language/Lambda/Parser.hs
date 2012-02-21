@@ -104,13 +104,13 @@ parens' p = do
     _ <- char ')'
     return e
 
-meta_to_expr :: MetaExpr Sym -> Expr
+meta_to_expr :: MetaExpr s -> GExpr s
 meta_to_expr (MVar (S x))     = Var x
 meta_to_expr (MApp x y)   = App (meta_to_expr x) (meta_to_expr y)
 meta_to_expr (MLam (S x) y)   = Lam x (meta_to_expr y)
 meta_to_expr _ = error "meta_to_expr should not be used if the MetaExpr tree has AntiExpr"
 
-to_meta :: Expr -> MetaExpr Sym
+to_meta :: GExpr s -> MetaExpr s
 to_meta (Var x)   = MVar (S x)
 to_meta (App x y) = MApp (to_meta x) (to_meta y)
 to_meta (Lam x y) = MLam (S x) (to_meta y)

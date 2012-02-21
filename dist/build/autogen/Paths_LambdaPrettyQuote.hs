@@ -8,13 +8,13 @@ import Data.Version (Version(..))
 import System.Environment (getEnv)
 
 version :: Version
-version = Version {versionBranch = [0,0,0,5], versionTags = []}
+version = Version {versionBranch = [0,0,0,6], versionTags = []}
 
 bindir, libdir, datadir, libexecdir :: FilePath
 
 bindir     = "/Users/hi5networks/.cabal/bin"
-libdir     = "/Users/hi5networks/.cabal/lib/LambdaPrettyQuote-0.0.0.5/ghc-7.2.2"
-datadir    = "/Users/hi5networks/.cabal/share/LambdaPrettyQuote-0.0.0.5"
+libdir     = "/Users/hi5networks/.cabal/lib/LambdaPrettyQuote-0.0.0.6/ghc-7.2.2"
+datadir    = "/Users/hi5networks/.cabal/share/LambdaPrettyQuote-0.0.0.6"
 libexecdir = "/Users/hi5networks/.cabal/libexec"
 
 getBinDir, getLibDir, getDataDir, getLibexecDir :: IO FilePath

@@ -13,6 +13,10 @@ import Language.Lambda.AST
 import Language.Lambda.Quote
 import Language.Lambda.Parser
 import Language.Lambda.Pretty
+import Language.Haskell.TH
+import Language.Haskell.TH.Syntax
+import Language.Haskell.TH.Syntax.Internals
+import NLam
 
 instance Arbitrary Expr where
     arbitrary = expr_arb
@@ -51,7 +55,9 @@ tests = [
             testCase "test_antipat_2" test_antipat_2,
             testCase "test_antipat_3" test_antipat_3,
             testCase "test_antipat_4" test_antipat_4,
-            testCase "test_antipat_5" test_antipat_5
+            testCase "test_antipat_5" test_antipat_5,
+            testCase "test_antipat_6" test_antipat_6,
+            testCase "test_antipat_6" test_antipat_7
         ]
     ]
     
@@ -104,7 +110,7 @@ run_p = runParser (parse_expr parse_sym) () ""
     
 prop_parse_is_inverse_of_ppr :: Expr -> Bool
 prop_parse_is_inverse_of_ppr x = result where
-    parsed = runParser (parse_expr parse_sym) () "" $ ppr x
+    parsed = runParser (parse_expr parse_sym) () "" $ Language.Lambda.Pretty.ppr x
     result = case parsed of
         Right e -> meta_to_expr e == x
         Left _ -> trace (show x) False 
@@ -169,5 +175,19 @@ test_antipat_5 = f input @?= expected where
     f [lam| (x ^y) |] = y
     input    = [lam| (x ^expected) |]
     expected = "yo"   
+    
+test_antipat_6 = f input @?= expected where
+    f [lam| \^x.(\^y. x y) |] = (x, y)
+    input    = [lam| \^x'.(\^y'. x y) |]
+    expected = (x', y')
+    x' = "hey"
+    y' = "you"
+
+test_antipat_7 = f input @?= expected where
+    f [nlam| \^x.(\^y. x y) |] = (x, y)
+    input    = [nlam| \^x'.(\^y'. x y) |]
+    expected = (x', y')
+    x' = mkName "hey"
+    y' = mkName "you"
 
 

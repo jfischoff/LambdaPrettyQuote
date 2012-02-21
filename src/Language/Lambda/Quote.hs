@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell, QuasiQuotes, RankNTypes #-}
 module Language.Lambda.Quote (lam, g_lam) where
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH
@@ -26,31 +26,32 @@ parseExpr sp (file, line, col) s = result where
     
 
     
-g_quoteExprExp :: (Data s, Show s) => SymParser () s -> String -> ExpQ
-g_quoteExprExp sp s =  do  
+g_quoteExprExp :: (Data s, Show s,  Typeable s) => SymParser () s -> String -> ExpQ
+g_quoteExprExp sp r =  do  
     loc <- location
     let pos =  (loc_filename loc,
              fst (loc_start loc),
              snd (loc_start loc))
-    parsed_expr <- (parseExpr sp) pos s
-    appE (varE $ mkName "meta_to_expr") $ dataToExpQ (const Nothing `extQ` antiExprExp) $ parsed_expr
+    parsed_expr <- (parseExpr sp) pos r
+    appE (varE $ mkName "meta_to_expr") $ dataToExpQ (const Nothing `extQ` 
+        (antiExprExp sp)) $ parsed_expr
              
-antiExprExp :: MetaExpr Sym -> Maybe (Q Exp)
-antiExprExp  (MLam (AntiSym v) x) = Just $ appE (appE (conE $ mkName "MLam") $ appE (conE $ mkName "S") $ varE (mkName v))
-                                         $ dataToExpQ (const Nothing `extQ` antiExprExp) x
-antiExprExp  (MVar (AntiSym v))   = Just $ appE (conE $ mkName "MVar") $ appE (conE $ mkName "S") $ varE (mkName v)
-antiExprExp  (AntiExpr v)         = Just $ appE (varE $ mkName "to_meta") $ varE (mkName v)
-antiExprExp  (AntiVar v)          = Just $ [| MVar (S $(varE $ mkName v)) |]
-antiExprExp  _                    = Nothing
+antiExprExp :: (Data s, Typeable s) => SymParser () s -> MetaExpr s -> Maybe (Q Exp)
+antiExprExp d (MLam (AntiSym v) x) = Just $ appE (appE (conE $ mkName "MLam") $ appE (conE $ mkName "S") $ varE (mkName v))
+                                         $ dataToExpQ (const Nothing `extQ` (antiExprExp d)) x
+antiExprExp d (MVar (AntiSym v))   = Just $ appE (conE $ mkName "MVar") $ appE (conE $ mkName "S") $ varE (mkName v)
+antiExprExp d (AntiExpr v)         = Just $ appE (varE $ mkName "to_meta") $ varE (mkName v)
+antiExprExp d (AntiVar v)          = Just $ [| MVar (S $(varE $ mkName v)) |]
+antiExprExp _ _                    = Nothing
 
-g_quoteExprPat :: (Data s, Show s) => SymParser () s ->  String -> PatQ
-g_quoteExprPat sp s =  do  
+g_quoteExprPat :: (Data s, Show s, Typeable s) => SymParser () s ->  String -> PatQ
+g_quoteExprPat sp r =  do  
     loc <- location
     let pos =  (loc_filename loc,
              fst (loc_start loc),
              snd (loc_start loc))
-    parsed_expr <- (parseExpr sp) pos s
-    th_pat <- dataToPatQ (const Nothing `extQ` antiExprPat) parsed_expr
+    parsed_expr <- (parseExpr sp) pos r
+    th_pat <- dataToPatQ (const Nothing `extQ` (antiExprPat sp)) parsed_expr
     return $ to_e th_pat where
         to_e p = transform to_e' p
 
@@ -67,13 +68,13 @@ g_quoteExprPat sp s =  do
         collapse_meta_sym (ConP n xs) | nameBase n == "S" = head xs
         collapse_meta_sym p@(ConP n xs) | otherwise = error ("collapse_meta_sym not used on a S " ++ show p)
              
-antiExprPat :: MetaExpr Sym -> Maybe (Q Pat)
-antiExprPat  (MLam (AntiSym v) x) = Just $ conP (mkName "MLam") [conP (mkName "S") [varP (mkName v)], 
-                                        dataToPatQ (const Nothing `extQ` antiExprPat) x]
-antiExprPat  (MVar (AntiSym v))   = Just $ conP (mkName "MVar") [conP (mkName "S") [varP (mkName v)]]
-antiExprPat  (AntiExpr v)         = Just $ varP (mkName v)
-antiExprPat  (AntiVar v)          = Just $ conP (mkName "MVar") [conP (mkName "S") [varP $ mkName v]]
-antiExprPat  _                    = Nothing
+antiExprPat :: (Data s, Typeable s) => SymParser () s -> MetaExpr s -> Maybe (Q Pat)
+antiExprPat d (MLam (AntiSym v) x) = Just $ conP (mkName "MLam") [conP (mkName "S") [varP (mkName v)], 
+                                        dataToPatQ (const Nothing `extQ` (antiExprPat d)) x]
+antiExprPat d (MVar (AntiSym v))   = Just $ conP (mkName "MVar") [conP (mkName "S") [varP (mkName v)]]
+antiExprPat d (AntiExpr v)         = Just $ varP (mkName v)
+antiExprPat d (AntiVar v)          = Just $ conP (mkName "MVar") [conP (mkName "S") [varP $ mkName v]]
+antiExprPat _ _                    = Nothing
 
 
 
