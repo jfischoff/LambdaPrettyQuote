@@ -28,12 +28,12 @@
   (major1) == 4 && (major2) <  4 || \
   (major1) == 4 && (major2) == 4 && (minor) <= 1)
 
-/* package lambda-ast-0.0.3 */
-#define VERSION_lambda_ast "0.0.3"
+/* package lambda-ast-0.0.4 */
+#define VERSION_lambda_ast "0.0.4"
 #define MIN_VERSION_lambda_ast(major1,major2,minor) (\
   (major1) <  0 || \
   (major1) == 0 && (major2) <  0 || \
-  (major1) == 0 && (major2) == 0 && (minor) <= 3)
+  (major1) == 0 && (major2) == 0 && (minor) <= 4)
 
 /* package parsec-3.1.2 */
 #define VERSION_parsec "3.1.2"
@@ -41,6 +41,13 @@
   (major1) <  3 || \
   (major1) == 3 && (major2) <  1 || \
   (major1) == 3 && (major2) == 1 && (minor) <= 2)
+
+/* package syb-0.3.5 */
+#define VERSION_syb "0.3.5"
+#define MIN_VERSION_syb(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  3 || \
+  (major1) == 0 && (major2) == 3 && (minor) <= 5)
 
 /* package template-haskell-2.6.0.0 */
 #define VERSION_template_haskell "2.6.0.0"
@@ -76,4 +83,11 @@
   (major1) <  0 || \
   (major1) == 0 && (major2) <  2 || \
   (major1) == 0 && (major2) == 2 && (minor) <= 2)
+
+/* package uniplate-1.6.5 */
+#define VERSION_uniplate "1.6.5"
+#define MIN_VERSION_uniplate(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  6 || \
+  (major1) == 1 && (major2) == 6 && (minor) <= 5)
 

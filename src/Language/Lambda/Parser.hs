@@ -7,7 +7,6 @@ import Text.Parsec.Token
 import Language.Lambda.AST
 import Data.Functor.Identity
 import Data.List
-import Control.Applicative ((<$>))
 import Data.Data
 
 type M = Identity
@@ -82,13 +81,16 @@ parens' p = do
     return e
 
 meta_to_expr :: MetaExpr -> Expr
-meta_to_expr (MVar x)   = Var x
-meta_to_expr (MApp x y) = App (meta_to_expr x) (meta_to_expr y)
-meta_to_expr (MLam x y) = Lam x (meta_to_expr y)
+meta_to_expr (MVar x)     = Var x
+meta_to_expr (MApp x y)   = App (meta_to_expr x) (meta_to_expr y)
+meta_to_expr (MLam x y)   = Lam x (meta_to_expr y)
+meta_to_expr (AntiExpr _) = error "meta_to_expr should not be used if the MetaExpr tree has AntiExpr"
 
-to_meta (Var x) = MVar x
+to_meta :: Expr -> MetaExpr
+to_meta (Var x)   = MVar x
 to_meta (App x y) = MApp (to_meta x) (to_meta y)
 to_meta (Lam x y) = MLam x (to_meta y)
+
 
 
 

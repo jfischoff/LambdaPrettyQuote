@@ -1,20 +1,12 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes, DeriveDataTypeable, OverloadedStrings, StandaloneDeriving #-}
-module Language.Lambda.Quote where
+{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
+module Language.Lambda.Quote (lam) where
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH
 import Language.Lambda.Parser
-import Language.Lambda.AST
 import Text.Parsec (runParser)
-import Data.Data
-import Control.Applicative
 import Data.Generics.Aliases
-import Language.Haskell.TH.Instances
 import Data.Generics.Uniplate.Data
-
-deriving instance Typeable1 GExpr
-deriving instance (Data a) =>  Data (GExpr a) 
-
---TODO make the pattern quoter and the anti expr
+ 
 lam :: QuasiQuoter
 lam = QuasiQuoter quoteExprExp quoteExprPat undefined undefined
 
@@ -32,10 +24,10 @@ quoteExprExp s =  do
              fst (loc_start loc),
              snd (loc_start loc))
     parsed_expr <- parseExpr pos s
-    appE (varE "meta_to_expr") $ dataToExpQ (const Nothing `extQ` antiExprExp) parsed_expr
+    appE (varE $ mkName "meta_to_expr") $ dataToExpQ (const Nothing `extQ` antiExprExp) parsed_expr
              
 antiExprExp :: MetaExpr -> Maybe (Q Exp)
-antiExprExp  (AntiExpr v)     = Just $ appE (varE "to_meta") $ varE (mkName v)
+antiExprExp  (AntiExpr v)     = Just $ appE (varE $ mkName "to_meta") $ varE (mkName v)
 antiExprExp  _                = Nothing
 
 
@@ -47,22 +39,24 @@ quoteExprPat s =  do
              snd (loc_start loc))
     parsed_expr <- parseExpr pos s
     th_pat <- dataToPatQ (const Nothing `extQ` antiExprPat) parsed_expr
-    return $ to_e th_pat
+    return $ to_e th_pat where
+        to_e p = transform to_e' p
+
+        to_e' (ConP n xs) = ConP (to_expr_name n) xs
+        to_e' x = x
+
+        to_expr_name name | show name == "MVar" = mkName "Var" 
+        to_expr_name name | show name == "MApp" = mkName "App" 
+        to_expr_name name | show name == "MLam" = mkName "Lam"
+        to_expr_name name | otherwise           = name
              
 antiExprPat :: MetaExpr -> Maybe (Q Pat)
 antiExprPat  (AntiExpr v)     = Just $ varP (mkName v)
 antiExprPat  _                = Nothing
 
 
-to_e p = transform to_e' p
 
-to_e' (ConP n xs) = ConP (to_expr_name n) xs
-to_e' x = x
 
-to_expr_name name | show name == "MVar" = "Var" 
-to_expr_name name | show name == "MApp" = "App" 
-to_expr_name name | show name == "MLam" = "Lam"
-to_expr_name name | otherwise = name
 
 
 
