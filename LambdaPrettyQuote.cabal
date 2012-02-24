@@ -16,7 +16,10 @@ homepage: http://github.com/jfischoff/LambdaPrettyQuote
 
 -- A longer description of the package.
 Description:  
-       CHANGES -- 0.0.0.2 added \"anti\" expressions for the quasiquoter to capture variables from the environment. Also added a pattern quasiquoter. 
+       CHANGES -- 0.0.0.2 added \"anti\" expressions for the quasiquoter to capture variables from the environment. Also added a pattern quasiquoter.
+       
+       
+
 
 -- The license under which the package is released.
 License:             BSD3
@@ -48,7 +51,7 @@ Cabal-version:       >=1.8
 
 Library
   -- Modules exported by the library.
-  Exposed-modules: Language.Lambda.Arbitrary, Language.Lambda.Parser, Language.Lambda.Pretty, Language.Lambda.Quote
+  Exposed-modules: Language.Lambda.Untyped.Arbitrary, Language.Lambda.Untyped.Parser, Language.Lambda.Untyped.Pretty, Language.Lambda.Untyped.Quote
   Hs-Source-Dirs: src
   -- Packages needed in order to build this package.
   Build-depends: base >= 4.0 && <= 6.0,
@@ -56,14 +59,15 @@ Library
                  test-framework-quickcheck2 >= 0.2.10,
                  test-framework-hunit >= 0.2.7,
                  test-framework >= 0.4.1.1,
-                 lambda-ast >= 0.0.4,
+                 lambda-ast >= 0.0.9,
                  HUnit >= 1.2.4.2,
                  DebugTraceHelpers >= 0.12,
                  template-haskell >= 2.6.0.0,
                  transformers >= 0.2.2.0,
                  parsec >= 3.1.2,
                  uniplate >= 1.6.5,
-                 syb >= 0.3.5
+                 syb >= 0.3.5,
+                 mtl >= 2.0.1.0
   ghc-options:            -Wall
 
 Test-Suite tests
@@ -75,7 +79,7 @@ Test-Suite tests
                     test-framework-quickcheck2 >= 0.2.10,
                     test-framework-hunit >= 0.2.7,
                     test-framework >= 0.4.1.1,
-                    lambda-ast >= 0.0.4,
+                    lambda-ast >= 0.0.9,
                     HUnit >= 1.2.4.2,
                     DebugTraceHelpers >= 0.12,
                     template-haskell >= 2.6.0.0,
@@ -83,5 +87,5 @@ Test-Suite tests
                     parsec >= 3.1.2,     
                     uniplate >= 1.6.5,
                     th-instances >= 0.1.0.2,
-                    syb >= 0.3.5
-  
+                    syb >= 0.3.5,
+                    mtl >= 2.0.1.0

@@ -28,12 +28,19 @@
   (major1) == 4 && (major2) <  4 || \
   (major1) == 4 && (major2) == 4 && (minor) <= 1)
 
-/* package lambda-ast-0.0.4 */
-#define VERSION_lambda_ast "0.0.4"
+/* package lambda-ast-0.0.7 */
+#define VERSION_lambda_ast "0.0.7"
 #define MIN_VERSION_lambda_ast(major1,major2,minor) (\
   (major1) <  0 || \
   (major1) == 0 && (major2) <  0 || \
-  (major1) == 0 && (major2) == 0 && (minor) <= 4)
+  (major1) == 0 && (major2) == 0 && (minor) <= 7)
+
+/* package mtl-2.0.1.0 */
+#define VERSION_mtl "2.0.1.0"
+#define MIN_VERSION_mtl(major1,major2,minor) (\
+  (major1) <  2 || \
+  (major1) == 2 && (major2) <  0 || \
+  (major1) == 2 && (major2) == 0 && (minor) <= 1)
 
 /* package parsec-3.1.2 */
 #define VERSION_parsec "3.1.2"
